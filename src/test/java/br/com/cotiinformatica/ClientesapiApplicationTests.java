@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -37,7 +36,6 @@ import br.com.cotiinformatica.domain.dtos.CriarClienteResponseDto;
 import br.com.cotiinformatica.domain.dtos.EnderecoDto;
 import br.com.cotiinformatica.domain.dtos.ExcluirClienteResponseDto;
 import br.com.cotiinformatica.domain.dtos.ListarClienteResponseDto;
-import br.com.cotiinformatica.domain.entities.Cliente;
 
 @SpringBootTest
 @AutoConfigureMockMvc

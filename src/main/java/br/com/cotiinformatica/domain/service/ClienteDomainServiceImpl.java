@@ -45,20 +45,20 @@ public class ClienteDomainServiceImpl implements ClienteDomainService {
 			throw new CpfAlreadyRegisteredException(request.getCpf());
 		}
 		
-		Cliente cliente = modelMapper.map(request, Cliente.class);
-		cliente.setId(UUID.randomUUID());
-		cliente.setDataNascimento(getDateValue(request.getDataNascimento()));
-		clienteRepository.save(cliente);
-		
 		ArrayList<Endereco> enderecos = new ArrayList<Endereco>();
 		
 		request.getEnderecos().forEach(enderecoRequest -> {
 			Endereco endereco = modelMapper.map(enderecoRequest, Endereco.class);
 			endereco.setId(UUID.randomUUID());
-			endereco.setClienteId(cliente.getId());
 			enderecoRepository.save(endereco);
 			enderecos.add(endereco);
 		});
+		
+		Cliente cliente = modelMapper.map(request, Cliente.class);
+		cliente.setId(UUID.randomUUID());
+		cliente.setDataNascimento(getDateValue(request.getDataNascimento()));
+		cliente.setEnderecos(Collections.unmodifiableList(enderecos));
+		clienteRepository.save(cliente);
 		
 		try {
 			rabbitMQProducerComponent.sendMessage(cliente);
@@ -68,10 +68,6 @@ public class ClienteDomainServiceImpl implements ClienteDomainService {
 		
 		CriarClienteResponseDto response = modelMapper.map(cliente, CriarClienteResponseDto.class);
 		response.setDataNascimento(getLocalDateValue(cliente.getDataNascimento()));
-		response.setEnderecos(new ArrayList<EnderecoDto>());
-		enderecos.forEach(endereco -> {
-			response.getEnderecos().add(modelMapper.map(endereco, EnderecoDto.class));
-		});
 		
 		return response;
 	}
@@ -82,16 +78,10 @@ public class ClienteDomainServiceImpl implements ClienteDomainService {
 			throw new ClientNotRegisteredException(clientId);
 		}
 		
-		Cliente cliente = modelMapper.map(request, Cliente.class);
-		cliente.setId(clientId);
-		cliente.setDataNascimento(getDateValue(request.getDataNascimento()));
-		clienteRepository.save(cliente);
-		
 		ArrayList<Endereco> enderecos = new ArrayList<Endereco>();
 		
 		request.getEnderecos().forEach(enderecoRequest -> {
 			Endereco endereco = modelMapper.map(enderecoRequest, Endereco.class);
-			endereco.setClienteId(cliente.getId());
 			
 			if(endereco.getId() == null) {
 				endereco.setId(UUID.randomUUID());
@@ -101,12 +91,14 @@ public class ClienteDomainServiceImpl implements ClienteDomainService {
 			enderecos.add(endereco);
 		});
 		
+		Cliente cliente = modelMapper.map(request, Cliente.class);
+		cliente.setId(clientId);
+		cliente.setEnderecos(Collections.unmodifiableList(enderecos));
+		cliente.setDataNascimento(getDateValue(request.getDataNascimento()));
+		clienteRepository.save(cliente);
+		
 		AtualizarClienteResponseDto response = modelMapper.map(cliente, AtualizarClienteResponseDto.class);
 		response.setDataNascimento(getLocalDateValue(cliente.getDataNascimento()));
-		response.setEnderecos(new ArrayList<EnderecoDto>());
-		enderecos.forEach(endereco -> {
-			response.getEnderecos().add(modelMapper.map(endereco, EnderecoDto.class));
-		});
 		
 		return response;
 	}
@@ -118,7 +110,7 @@ public class ClienteDomainServiceImpl implements ClienteDomainService {
 			throw new ClientNotRegisteredException(clientId);
 		}
 		
-		List<Endereco> enderecos = enderecoRepository.findByClientId(clientId);
+		List<Endereco> enderecos = new ArrayList<Endereco>();
 		
 		ExcluirClienteResponseDto response = modelMapper.map(cliente, ExcluirClienteResponseDto.class);
 		response.setDataNascimento(getLocalDateValue(cliente.getDataNascimento()));
@@ -127,8 +119,8 @@ public class ClienteDomainServiceImpl implements ClienteDomainService {
 			response.getEnderecos().add(modelMapper.map(endereco, EnderecoDto.class));
 		});
 		
-		clienteRepository.delete(cliente);
 		enderecoRepository.deleteAll(enderecos);
+		clienteRepository.delete(cliente);
 		
 		return response;
 	}
@@ -145,14 +137,8 @@ public class ClienteDomainServiceImpl implements ClienteDomainService {
 		List<ListarClienteResponseDto> response = new ArrayList<ListarClienteResponseDto>(); 
 		
 		clientes.forEach(cliente -> {
-			List<Endereco> enderecos = enderecoRepository.findByClientId(cliente.getId());
-			
 			ListarClienteResponseDto clientesDto = modelMapper.map(cliente, ListarClienteResponseDto.class);
 			clientesDto.setDataNascimento(getLocalDateValue(cliente.getDataNascimento()));
-			clientesDto.setEnderecos(new ArrayList<EnderecoDto>());
-			enderecos.forEach(endereco -> {
-				clientesDto.getEnderecos().add(modelMapper.map(endereco, EnderecoDto.class));
-			});
 			response.add(clientesDto);
 		});
 		
@@ -165,13 +151,9 @@ public class ClienteDomainServiceImpl implements ClienteDomainService {
 		if(cliente == null) {
 			throw new ClientNotRegisteredException(clientId);
 		}
-		List<Endereco> enderecos = enderecoRepository.findByClientId(clientId);
+		
 		ListarClienteResponseDto response = modelMapper.map(cliente, ListarClienteResponseDto.class);
 		response.setDataNascimento(getLocalDateValue(cliente.getDataNascimento()));
-		response.setEnderecos(new ArrayList<EnderecoDto>());
-		enderecos.forEach(endereco -> {
-			response.getEnderecos().add(modelMapper.map(endereco, EnderecoDto.class));
-		});
 		
 		return response;
 	}
